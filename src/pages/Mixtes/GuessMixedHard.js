@@ -180,9 +180,9 @@ const GuessMixedHard = () => {
           />
         </div>
 
-        <div className="flex flex-col gap-4 w-full max-w-screen-sm">
+        <div className="flex flex-col gap-4 w-full max-w-screen-sm justify-center items-center">
           <input
-            className="rounded-lg text-white px-4 py-2 w-full"
+            className="rounded-lg text-white px-4 py-2 w-full sm:w-auto"
             type="text"
             placeholder="Entrez votre réponse"
             value={userInput}
