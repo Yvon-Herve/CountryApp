@@ -3,7 +3,7 @@ import Navigation from "../../components/Navigation";
 import SpotlightButton from "../../components/SpotlightButton";
 import axios from "axios";
 import Loader from "../../components/Loader";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import AudioPlayer from "../../components/AudioPlayer";
@@ -15,9 +15,15 @@ const GuessCapitalHard = () => {
   const [feedback, setFeedback] = useState("");
   const [inputBackground, setInputBackground] = useState("transparent");
   const [loading, setLoading] = useState(true);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [score, setScore] = useState(0);
+  const [usedQuestions, setUsedQuestions] = useState([]);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const navigate = useNavigate();
 
   const { playSound, MuteButton } = AudioPlayer();
 
+  // Fonction pour récupérer une nouvelle question
   const fetchQuestion = async () => {
     setLoading(true);
     setFeedback("");
@@ -30,9 +36,22 @@ const GuessCapitalHard = () => {
         (country) => country.capital && country.capital && country.flags
       );
 
+      const availableQuestions = capitalList.filter(
+        (country) => !usedQuestions.includes(country.name)
+      );
+
+      if (availableQuestions.length === 0) {
+        setQuizFinished(true);
+        return;
+      }
+
       const correctCapital =
-        capitalList[Math.floor(Math.random() * capitalList.length)];
+        availableQuestions[
+          Math.floor(Math.random() * availableQuestions.length)
+        ];
+
       setCorrectAnswer(correctCapital);
+      setUsedQuestions((prev) => [...prev, correctCapital.name]);
     } catch (error) {
       console.error("Erreur lors du chargement des données", error);
     } finally {
@@ -40,14 +59,17 @@ const GuessCapitalHard = () => {
     }
   };
 
+  // Utilisation de useEffect pour charger la première question
   useEffect(() => {
     fetchQuestion();
   }, []);
 
+  // Fonction pour enlever les accents
   const removeAccents = (str) => {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   };
 
+  // Fonction de validation de la réponse
   const checkAnswer = () => {
     if (!correctAnswer) return;
 
@@ -57,6 +79,7 @@ const GuessCapitalHard = () => {
     if (userAnswer === capitalInFrench) {
       setFeedback("Bonne réponse !");
       setInputBackground("green");
+      setScore(score + 1);
       playSound("/assets/sounds/win.mp3");
     } else {
       setFeedback(
@@ -66,9 +89,29 @@ const GuessCapitalHard = () => {
       playSound("/assets/sounds/loser.mp3");
     }
 
+    // Gestion du compteur de questions et de la fin du quiz
     setTimeout(() => {
-      fetchQuestion();
+      setQuestionCount(questionCount + 1);
+      if (questionCount + 1 === 5) {
+        setQuizFinished(true);
+      } else {
+        fetchQuestion();
+      }
     }, 3000);
+  };
+
+  // Fonction pour recommencer le quiz
+  const handleRestart = () => {
+    setQuestionCount(0);
+    setScore(0);
+    setUsedQuestions([]);
+    setQuizFinished(false);
+    fetchQuestion();
+  };
+
+  // Fonction pour choisir un autre quiz
+  const handleChooseAnotherQuiz = () => {
+    navigate("/choose-quiz");
   };
 
   if (loading || !correctAnswer) return <Loader setLoading={setLoading} />;
@@ -87,21 +130,24 @@ const GuessCapitalHard = () => {
           <Navigation />
         </div>
         <div className="m-4">
-          <MuteButton /> {/* Bouton pour activer/désactiver le son */}
+          <MuteButton />
         </div>
       </div>
 
       {/* Contenu principal */}
       <div className="flex-grow flex flex-col items-center justify-center space-y-8 px-4">
-        {/* Question */}
+        {/* Affichage de la progression */}
         <div className="w-full">
-          <h1 className="text-center text-lg sm:text-xl md:text-2xl break-words">
+          <p className="text-center text-xs break-words">
+            Question {questionCount + 1} sur 5
+          </p>
+          <h2 className="text-center text-lg sm:text-xl md:text-2xl break-words">
             Quelle est la capitale de ce pays ?<br />
             <span className="text-blue-400">{correctAnswer.name}</span>
-          </h1>
+          </h2>
         </div>
 
-        {/* Drapeau */}
+        {/* Affichage du drapeau */}
         <div className="flex justify-center w-full">
           <img
             src={correctAnswer.flags.svg}
@@ -110,27 +156,50 @@ const GuessCapitalHard = () => {
           />
         </div>
 
-        {/* Input et bouton */}
+        {/* Champ de saisie et bouton */}
         <div className="flex flex-col gap-4 w-full max-w-screen-sm justify-center items-center">
           <input
             className="rounded-lg text-white px-4 py-2 w-full sm:w-auto"
             type="text"
             placeholder="Entrez votre réponse"
             value={userInput}
-            onChange={(e) => setUserInput(e.target.value)} // Mise à jour de la réponse
+            onChange={(e) => setUserInput(e.target.value)}
             style={{ backgroundColor: inputBackground }}
-            disabled={feedback !== ""} // Désactive seulement après validation
+            disabled={feedback !== ""}
           />
           <SpotlightButton
-            onClick={checkAnswer} // Validation directe
-            disabled={feedback !== "" || !userInput.trim()} // Désactive si l'input est vide
+            onClick={checkAnswer}
+            disabled={feedback !== "" || !userInput.trim()}
           >
             Valider
           </SpotlightButton>
         </div>
 
-        {/* Feedback après validation */}
+        {/* Affichage du feedback après validation */}
         <p className="text-center text-sm sm:text-base">{feedback}</p>
+
+        {/* Message de fin de quiz */}
+        {quizFinished && (
+          <div className="text-center space-y-4">
+            <p className="text-lg sm:text-xl">
+              Quiz terminé ! Votre score : {score}/5
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={handleRestart}
+                className="bg-blue-500 px-4 py-2 rounded text-white"
+              >
+                Recommencer
+              </button>
+              <button
+                onClick={handleChooseAnotherQuiz}
+                className="bg-green-500 px-4 py-2 rounded text-white"
+              >
+                Choisir un autre quiz
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

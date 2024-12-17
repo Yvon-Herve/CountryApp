@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import Navigation from "../../components/Navigation";
 import SpotlightButton from "../../components/SpotlightButton";
+import axios from "axios";
 import Loader from "../../components/Loader";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import AudioPlayer from "../../components/AudioPlayer";
@@ -14,16 +14,18 @@ const GuessMixedHard = () => {
   const [quizType, setQuizType] = useState(""); // "country" ou "capital"
   const [userInput, setUserInput] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [loading, setLoading] = useState(true);
   const [inputBackground, setInputBackground] = useState("transparent");
+  const [loading, setLoading] = useState(true);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [score, setScore] = useState(0);
+  const [usedQuestions, setUsedQuestions] = useState([]);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const navigate = useNavigate();
 
   const { playSound, MuteButton } = AudioPlayer();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  // Fonction pour récupérer une nouvelle question
+  const fetchQuestion = async () => {
     setLoading(true);
     setFeedback("");
     setInputBackground("transparent");
@@ -35,14 +37,25 @@ const GuessMixedHard = () => {
         (country) => country.capital && country.flags
       );
 
-      const correctData =
-        countryList[Math.floor(Math.random() * countryList.length)];
+      const availableQuestions = countryList.filter(
+        (country) => !usedQuestions.includes(country.name.common)
+      );
 
-      // Détermine aléatoirement si le quiz porte sur le pays ou la capitale
+      if (availableQuestions.length === 0) {
+        setQuizFinished(true);
+        return;
+      }
+
+      const correctData =
+        availableQuestions[
+          Math.floor(Math.random() * availableQuestions.length)
+        ];
+
       const randomQuizType = Math.random() < 0.5 ? "country" : "capital";
 
       setCorrectAnswer(correctData);
       setQuizType(randomQuizType);
+      setUsedQuestions((prev) => [...prev, correctData.name.common]);
     } catch (error) {
       console.error("Erreur lors du chargement des données", error);
     } finally {
@@ -50,56 +63,74 @@ const GuessMixedHard = () => {
     }
   };
 
+  useEffect(() => {
+    fetchQuestion();
+  }, []);
+
+  // Fonction pour normaliser les réponses (supprime les accents)
   const removeAccents = (str) => {
     return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   };
 
+  // Fonction pour vérifier la réponse
   const checkAnswer = () => {
+    if (!correctAnswer) return;
+
     const userAnswer = removeAccents(userInput.trim().toLowerCase());
 
+    let isCorrect = false;
+
     if (quizType === "country") {
-      const countryNameInEnglish = removeAccents(
-        correctAnswer.name.common.toLowerCase()
-      );
       const countryNameInFrench = removeAccents(
         correctAnswer.translations?.fra?.common?.toLowerCase() || ""
       );
-
-      if (
-        userAnswer === countryNameInEnglish ||
-        userAnswer === countryNameInFrench
-      ) {
-        setFeedback("Bonne réponse !");
-        setInputBackground("green");
-        playSound("/assets/sounds/win.mp3");
-      } else {
-        setFeedback(
-          `Mauvaise réponse. La bonne réponse était ${
-            correctAnswer.translations?.fra?.common || correctAnswer.name.common
-          }.`
-        );
-        setInputBackground("red");
-        playSound("/assets/sounds/loser.mp3");
+      if (userAnswer === countryNameInFrench) {
+        isCorrect = true;
       }
     } else if (quizType === "capital") {
-      const capitalName = removeAccents(correctAnswer.capital[0].toLowerCase());
-
+      const capitalName = removeAccents(
+        correctAnswer.capital[0]?.toLowerCase() || ""
+      );
       if (userAnswer === capitalName) {
-        setFeedback("Bonne réponse !");
-        setInputBackground("green");
-        playSound("/assets/sounds/win.mp3");
-      } else {
-        setFeedback(
-          `Mauvaise réponse. La bonne réponse était ${correctAnswer.capital[0]}.`
-        );
-        setInputBackground("red");
-        playSound("/assets/sounds/loser.mp3");
+        isCorrect = true;
       }
     }
 
+    if (isCorrect) {
+      setFeedback("Bonne réponse !");
+      setInputBackground("green");
+      setScore(score + 1);
+      playSound("/assets/sounds/win.mp3");
+    } else {
+      const correctValue =
+        quizType === "country"
+          ? correctAnswer.translations?.fra?.common || correctAnswer.name.common
+          : correctAnswer.capital[0];
+      setFeedback(`Mauvaise réponse. La bonne réponse était ${correctValue}.`);
+      setInputBackground("red");
+      playSound("/assets/sounds/loser.mp3");
+    }
+
     setTimeout(() => {
-      fetchData();
+      setQuestionCount(questionCount + 1);
+      if (questionCount + 1 === 5) {
+        setQuizFinished(true);
+      } else {
+        fetchQuestion();
+      }
     }, 3000);
+  };
+
+  const handleRestart = () => {
+    setQuestionCount(0);
+    setScore(0);
+    setUsedQuestions([]);
+    setQuizFinished(false);
+    fetchQuestion();
+  };
+
+  const handleChooseAnotherQuiz = () => {
+    navigate("/choose-quiz");
   };
 
   if (loading || !correctAnswer) return <Loader setLoading={setLoading} />;
@@ -118,64 +149,83 @@ const GuessMixedHard = () => {
           <Navigation />
         </div>
         <div className="m-4">
-          <MuteButton /> {/* Bouton pour activer/désactiver le son */}
+          <MuteButton />
         </div>
       </div>
 
-      {/* Contenu principal */}
-      <div className="flex-grow flex flex-col mt-14 space-y-10 items-center justify-center px-4">
-        {/* Question */}
-        <div>
+      {/* Main Content */}
+      <div className="flex-grow flex flex-col items-center justify-center space-y-8 px-4">
+        <div className="w-full">
+          <p className="text-center text-xs">
+            Question {questionCount + 1} sur 5
+          </p>
           {quizType === "country" ? (
-            <h1 className="text-center text-lg sm:text-xl md:text-2xl">
+            <h2 className="text-center text-lg sm:text-xl md:text-2xl">
               À quel pays appartient ce drapeau ?
-            </h1>
+            </h2>
           ) : (
-            <h1 className="text-center text-lg sm:text-xl md:text-2xl break-words">
-              Quelle est la capitale de ce pays ?<br />
-              <span className="text-blue-400">{correctAnswer.name.common}</span>
-            </h1>
+            <h2 className="text-center text-lg sm:text-xl md:text-2xl">
+              Quelle est la capitale de{" "}
+              <span className="text-blue-400">{correctAnswer.name.common}</span>{" "}
+              ?
+            </h2>
           )}
         </div>
 
-        {/* Drapeau */}
         <div className="flex justify-center w-full">
           <img
             src={correctAnswer.flags.svg}
             alt={`Drapeau de ${correctAnswer.name.common}`}
-            className="w-48 sm:w-64 md:w-72"
+            className="w-40 sm:w-56 md:w-64"
           />
         </div>
 
-        {/* Input et bouton */}
-        <div className="flex flex-col gap-4 w-full max-w-screen-sm justify-center items-center">
+        <div className="flex flex-col gap-4 w-full max-w-screen-sm">
           <input
-            className="rounded-lg text-white px-4 py-2 w-full sm:w-auto"
+            className="rounded-lg text-white px-4 py-2 w-full"
             type="text"
             placeholder="Entrez votre réponse"
             value={userInput}
-            onChange={(e) => setUserInput(e.target.value)} // Mise à jour de la réponse
+            onChange={(e) => setUserInput(e.target.value)}
             style={{ backgroundColor: inputBackground }}
-            disabled={feedback !== ""} // Désactive seulement après validation
+            disabled={feedback !== ""}
           />
-
           <SpotlightButton
-            onClick={checkAnswer} // Validation directe
-            disabled={feedback !== "" || !userInput.trim()} // Désactive si l'input est vide
+            onClick={checkAnswer}
+            disabled={feedback !== "" || !userInput.trim()}
           >
             Valider
           </SpotlightButton>
         </div>
 
-        {/* Feedback après validation */}
-        <p className="text-center text-sm sm:text-base">{feedback}</p>
+        <p className="text-center text-sm">{feedback}</p>
+
+        {quizFinished && (
+          <div className="text-center space-y-4">
+            <p className="text-lg sm:text-xl">
+              Quiz terminé ! Votre score : {score}/5
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={handleRestart}
+                className="bg-blue-500 px-4 py-2 rounded text-white"
+              >
+                Recommencer
+              </button>
+              <button
+                onClick={handleChooseAnotherQuiz}
+                className="bg-green-500 px-4 py-2 rounded text-white"
+              >
+                Choisir un autre quiz
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
       <footer className="w-full py-4 text-center text-xs mt-auto">
-        <div className="flex justify-center">
-          <Credit />
-        </div>
+        <Credit />
       </footer>
     </div>
   );
