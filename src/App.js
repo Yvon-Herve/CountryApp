@@ -13,7 +13,8 @@ import GuessCapitalHard from "./pages/Capital/GuessCapitalHard";
 import GuessMixedEasy from "./pages/Mixtes/GuessMixedEasy";
 import GuessMixedMedium from "./pages/Mixtes/GuessMixedMedium";
 import GuessMixedHard from "./pages/Mixtes/GuessMixedHard";
-import Countries from "../src/pages/Countries";
+import Info from "./pages/Infos";
+import Countries from "./pages/Countries";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/infos" element={<Info />} />
           <Route path="/countries" element={<Countries />} />
           <Route path="/country/:name" element={<Details />} />
           <Route path="/choose-quiz" element={<ChooseQuiz />} />
