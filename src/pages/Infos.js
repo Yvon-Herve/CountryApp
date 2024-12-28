@@ -43,7 +43,7 @@ const Info = () => {
           onClick={handleHome}
           className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition duration-300"
         >
-          Let's start
+          Commencer
         </button>
       </div>
 
