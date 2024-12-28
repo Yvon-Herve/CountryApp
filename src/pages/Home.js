@@ -8,7 +8,7 @@ const HomePage = () => {
     <div className="min-h-screen flex flex-col bg-slate-900 text-white">
       <header className="w-full text-center py-8 md:py-12">
         <h1 className="text-4xl md:text-5xl font-bold">
-          Bienvenue sur LudoGeo !
+          Bienvenue sur LudoGeo
         </h1>
       </header>
 
