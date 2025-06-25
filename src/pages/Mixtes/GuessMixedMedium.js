@@ -26,7 +26,10 @@ const GuessMixedMedium = () => {
   const fetchQuestion = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("https://restcountries.com/v3.1/all");
+      const res = await axios.get(
+        "https://restcountries.com/v3.1/all?fields=name,capital,region,population,translations,flags"
+      );
+      // const res = await axios.get("https://restcountries.com/v3.1/all");
       const countryList = res.data.filter(
         (country) => country.capital && country.flags
       );

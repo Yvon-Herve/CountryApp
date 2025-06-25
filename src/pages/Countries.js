@@ -15,7 +15,10 @@ const Countries = () => {
   // Fonction async pour récupérer les données
   const fetchData = async () => {
     try {
-      const res = await axios.get("https://restcountries.com/v3.1/all");
+      const res = await axios.get(
+        "https://restcountries.com/v3.1/all?fields=name,capital,region,population,translations,flags"
+      );
+      // const res = await axios.get("https://restcountries.com/v3.1/all");
 
       // Filtrer les pays en excluant "Îles mineures éloignées des États-Unis"
       const filteredData = res.data.filter(
