@@ -26,10 +26,7 @@ const GuessCapitalMedium = () => {
   const fetchQuestion = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        "https://restcountries.com/v3.1/all?fields=name,capital,region,population,translations,flags"
-      );
-      // const res = await axios.get("https://restcountries.com/v2/all?lang=fr");
+      const res = await axios.get("https://restcountries.com/v2/all?lang=fr");
       const capitalList = res.data.filter(
         (country) => country.capital && country.capital && country.flags
       );

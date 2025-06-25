@@ -14,8 +14,7 @@ const Details = () => {
   const getData = async () => {
     try {
       const res = await axios.get(
-        `https://restcountries.com/v3.1/all?fields=name,capital,region,population,translations,flags${name}`
-        // `https://restcountries.com/v3.1/name/${name}`
+        `https://restcountries.com/v3.1/name/${name}`
       );
 
       // Filtrer les résultats pour exclure les Îles mineures éloignées des États-Unis
