@@ -25,7 +25,10 @@ const GuessCountryEasy = () => {
   const fetchQuestion = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("https://restcountries.com/v3.1/all");
+      const res = await axios.get(
+        "https://restcountries.com/v3.1/all?fields=name,capital,region,population,translations,flags"
+      );
+
       const countryList = res.data.filter((country) => country.flags);
 
       const availableQuestions = countryList.filter(
