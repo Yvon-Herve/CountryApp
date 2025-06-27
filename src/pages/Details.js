@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import Navigation from "../components/Navigation";
@@ -10,14 +10,15 @@ import States from "../components/States";
 const Details = () => {
   const { name } = useParams();
   const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const getData = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(
         `https://restcountries.com/v3.1/name/${name}?fullText=true&fields=name,capital,region,population,translations,flags,continents`
       );
 
-      // Filtrer les résultats pour exclure les Îles mineures éloignées des États-Unis
       const filteredData = res.data.filter(
         (country) =>
           !country.translations.fra.common.includes(
@@ -28,6 +29,9 @@ const Details = () => {
       setDetails(filteredData.length > 0 ? filteredData[0] : null);
     } catch (error) {
       console.error("Erreur lors de la récupération des données :", error);
+      setDetails(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,29 +39,26 @@ const Details = () => {
     getData();
   }, [name]);
 
-  if (!details) return <Loader setLoading={setDetails} />;
+  if (loading) return <Loader />;
+  if (!details)
+    return <p className="text-white text-center mt-10">Pays non trouvé</p>;
 
   return (
     <div className="bg-slate-900 min-h-screen flex flex-col text-white">
-      {/* Navigation */}
       <Navigation />
 
-      {/* Contenu principal */}
       <div className="flex-grow">
         <div className="flex flex-col items-center justify-center p-4">
-          {/* Informations sur le pays */}
           <div className="w-full sm:max-w-lg md:max-w-2xl lg:max-w-4xl">
             <CountryInfo details={details} />
           </div>
         </div>
 
-        {/* Section des États */}
         <div className="px-4 sm:px-8 md:px-16 pb-4">
           <States country={details.name.common} />
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="w-full py-4 text-center text-xs mt-auto">
         <div className="flex justify-center">
           <Credit />

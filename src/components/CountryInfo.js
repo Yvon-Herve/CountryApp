@@ -2,8 +2,11 @@ import React from "react";
 import Pib from "../components/Pib";
 
 const CountryInfo = ({ details }) => {
+  if (!details) return <p>Détails indisponibles</p>;
+
   const currencyKey = Object.keys(details.currencies || {})[0];
-  const currency = details.currencies[currencyKey];
+  const currency = currencyKey ? details.currencies[currencyKey] : null;
+
   const languages = details.languages
     ? Object.values(details.languages).join(", ")
     : "Aucune langue disponible";
@@ -11,28 +14,31 @@ const CountryInfo = ({ details }) => {
   return (
     <div>
       <h1 className="text-2xl font-bold flex justify-center items-center">
-        {details.translations.fra.common}
+        {details.translations?.fra?.common || "Nom indisponible"}
       </h1>
       <div className="p-4">
         <div className="flex justify-center items-center gap-3">
           <div>
             <img
               className="h-full w-full object-cover rounded-lg"
-              src={details.flags.svg}
-              alt={"Drapeau " + details.translations.fra.common}
+              src={details.flags?.svg || ""}
+              alt={"Drapeau " + (details.translations?.fra?.common || "")}
               style={{ width: "200px" }}
             />
           </div>
           <div className="mt-4">
             <p>Langues : {languages}</p>
-            <p className="">Capital : {details.capital}</p>
-            <p className="">
-              Population :{details.population.toLocaleString()}
+            <p>Capital : {details.capital ? details.capital[0] : "Inconnue"}</p>
+            <p>
+              Population :{" "}
+              {details.population
+                ? details.population.toLocaleString()
+                : "Inconnue"}
             </p>
             <Pib pib={details.cca3} />
             {currency && (
               <p>
-                <>Devise :</> {currency.name} ({currency.symbol})
+                Devise : {currency.name} ({currency.symbol})
               </p>
             )}
           </div>
@@ -41,9 +47,9 @@ const CountryInfo = ({ details }) => {
         <div className="mt-6">
           <h3>Google maps</h3>
           <iframe
-            title={`Carte de ${details.translations.fra.common}`}
+            title={`Carte de ${details.translations?.fra?.common || ""}`}
             src={`https://www.google.com/maps/embed/v1/place?q=${encodeURIComponent(
-              details.translations.fra.official
+              details.translations?.fra?.official || ""
             )}&key=AIzaSyBBNMaq9Q3PooJDMjguPsdBJe1lCWV3pmM`}
             width="100%"
             height="200"
